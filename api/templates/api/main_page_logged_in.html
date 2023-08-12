@@ -1,0 +1,6 @@
+<h1>home page {{ request.user }}</h1>
+<a href="{% url 'api:make_short_url' %}">make short url</a>
+<br/>
+<a href="{% url 'analytics:general_used' %}">see analytics</a>
+<hr/>
+<a href="{% url 'logout' %}">log out</a>

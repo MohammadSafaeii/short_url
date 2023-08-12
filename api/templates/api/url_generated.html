@@ -1,0 +1,8 @@
+<h1>{{ request.user }} your url generated</h1>
+<p>your url:</p>
+<a href={{ longurl }}>{{ longurl }}</a>
+<br/>
+<p>short url:</p>
+<a href={{ shorturl }}>{{ shorturl }}</a>
+<hr/>
+<a href="{% url 'api:main_page' %}">Home</a>

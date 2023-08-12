@@ -1,0 +1,7 @@
+{% for key, value in context.items %}
+	<ul><strong>{{ key }}</strong>:
+		{% for key2, value2 in value.items %}
+		<li><strong>{{ key2 }}</strong>: {{ value2 }}</li>
+	{% endfor %}</ul>
+{% endfor %}
+

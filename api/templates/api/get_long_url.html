@@ -1,0 +1,11 @@
+<h1>write your URL</h1>
+<form class="" action="{% url 'api:make_short_url' %}" method="post" style="width: 100%">
+	{% csrf_token %}
+	<fieldset>
+		<label for="longurl">your url:</label>
+		<input style="height: 80px" type="url" name="longurl" id="long_url" class="" placeholder="Your URL" required>
+		<label for="short_url_suggest">short url suggest(optional):</label>
+		<input style="height: 80px" type="text" name="short_url_suggest" id="short_url_suggest" class="" placeholder="mysitename">
+	</fieldset>
+	<button style="padding: 10px" class="btn btn-outline-info" type="submit">Create URL</button>
+</form>
