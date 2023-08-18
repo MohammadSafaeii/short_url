@@ -2,8 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
-class urlHashmap(models.Model):
-	user = models.ForeignKey(User, on_delete=models.CASCADE, null=False, blank=False)
+class UrlHashmap(models.Model):
+	user = models.ForeignKey(User, on_delete=models.CASCADE, null=False, blank=False, related_name='url_hashmaps')
 	longurl = models.CharField(max_length=255)
 	shorturl = models.CharField(max_length=10, unique=True)
 

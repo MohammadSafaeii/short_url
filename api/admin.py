@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import urlHashmap
+from .models import UrlHashmap
 
 
 class urlHashmapAdmin(admin.ModelAdmin):
@@ -8,4 +8,4 @@ class urlHashmapAdmin(admin.ModelAdmin):
 
 
 # Register the model with the admin site
-admin.site.register(urlHashmap, urlHashmapAdmin)
+admin.site.register(UrlHashmap, urlHashmapAdmin)

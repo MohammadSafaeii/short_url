@@ -1,0 +1,19 @@
+<form class="" action="{% url 'analytics:specific_url_used' %}" method="post" style="width: 100%">
+	{% csrf_token %}
+	<fieldset>
+		{% if error_message %}<p><strong style="color: red">{{ error_message }}</strong></p>{% endif %}
+		{% for url_hashmap in request.user.url_hashmaps.all %}
+			<input type="radio" name="url_hashmap" id="url_hashmap{{ forloop.counter }}" value="{{ url_hashmap.id }}">
+			<label for="url_hashmap{{ forloop.counter }}">{{ url_hashmap.shorturl }}</label><br>
+		{% endfor %}
+		<hr/>
+		<label for="period">period</label>
+		<select name="period" id="period">
+			<option value="today">today</option>
+			<option value="last_day">last day</option>
+			<option value="last_week">last week</option>
+			<option value="last_month">last month</option>
+		</select>
+	</fieldset>
+	<button style="padding: 10px" class="btn btn-outline-info" type="submit">See Result</button>
+</form>

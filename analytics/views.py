@@ -4,10 +4,13 @@ from django.utils import timezone
 from datetime import timedelta
 from django.template import loader
 from django.http import HttpResponse
-from api.models import urlHashmap
+from api.models import UrlHashmap
+from django.contrib.auth.forms import AuthenticationForm
+from django.shortcuts import render, redirect
+from api.models import UrlHashmap
 
 
-def calculate_parameters(item, filtered_data):
+def calculateParameters(item, filtered_data):
 	shorturl = item['shorturl']
 	general_count = item['count']
 	device = {}
@@ -47,12 +50,12 @@ def calculate_parameters(item, filtered_data):
 	return shorturl, general_count, general_count_per_user, device, device_per_user, browser, browser_per_user
 
 
-def create_url_used_records(start_time, end_time, short_url_usage_model):
+def createUrlUsedRecords(start_time, end_time, short_url_usage_model):
 	# yesterday = timezone.now() - timedelta(days=1)
 	filtered_data = ShortUrlUsage.objects.filter(date_create__gt=start_time, date_create__lt=end_time)
 	grouped_data = filtered_data.values('shorturl').annotate(count=Count('id'))
 	for item in grouped_data:
-		shorturl, general_count, general_count_per_user, device, device_per_user, browser, browser_per_user = calculate_parameters(item, filtered_data)
+		shorturl, general_count, general_count_per_user, device, device_per_user, browser, browser_per_user = calculateParameters(item, filtered_data)
 		short_url_usage_model.objects.create(
 			shorturl=shorturl,
 			general_count=general_count,
@@ -67,11 +70,11 @@ def create_url_used_records(start_time, end_time, short_url_usage_model):
 def cronFillUrlUsageTable():
 	end_time = timezone.localtime(timezone.now()).replace(hour=0, minute=0, second=0, microsecond=0)
 	ShortUrlUsageLastDay.objects.all().delete()
-	create_url_used_records((timezone.localtime(timezone.now()) - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0), end_time, ShortUrlUsageLastDay)
+	createUrlUsedRecords((timezone.localtime(timezone.now()) - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0), end_time, ShortUrlUsageLastDay)
 	ShortUrlUsageLastWeek.objects.all().delete()
-	create_url_used_records((timezone.localtime(timezone.now()) - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0), end_time, ShortUrlUsageLastWeek)
+	createUrlUsedRecords((timezone.localtime(timezone.now()) - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0), end_time, ShortUrlUsageLastWeek)
 	ShortUrlUsageLastMonth.objects.all().delete()
-	create_url_used_records((timezone.localtime(timezone.now()) - timedelta(days=30)).replace(hour=0, minute=0, second=0, microsecond=0), end_time, ShortUrlUsageLastMonth)
+	createUrlUsedRecords((timezone.localtime(timezone.now()) - timedelta(days=30)).replace(hour=0, minute=0, second=0, microsecond=0), end_time, ShortUrlUsageLastMonth)
 
 
 def userUrlData(request):
@@ -80,7 +83,7 @@ def userUrlData(request):
 		context = {
 		}
 		return HttpResponse(template.render(context, request))
-	user_url_hashmaps = urlHashmap.objects.filter(user=request.user)
+	user_url_hashmaps = UrlHashmap.objects.filter(user=request.user)
 	response = {}
 	start_time = timezone.localtime(timezone.now()).replace(hour=0, minute=0, second=0, microsecond=0)
 	end_time = timezone.localtime(timezone.now())
@@ -88,7 +91,7 @@ def userUrlData(request):
 		filtered_data = ShortUrlUsage.objects.filter(date_create__gt=start_time, date_create__lt=end_time, shorturl=item.shorturl)
 		try:
 			grouped_data = filtered_data.values('shorturl').annotate(count=Count('id'))[0]
-			shorturl, general_count, general_count_per_user, device, device_per_user, browser, browser_per_user = calculate_parameters(grouped_data, filtered_data)
+			shorturl, general_count, general_count_per_user, device, device_per_user, browser, browser_per_user = calculateParameters(grouped_data, filtered_data)
 		except:
 			shorturl = general_count = general_count_per_user = device = device_per_user = browser = browser_per_user = 'NY'
 		last_day_record = ShortUrlUsageLastDay.objects.filter(shorturl=item.shorturl).first()
@@ -98,28 +101,112 @@ def userUrlData(request):
 			item.shorturl: {
 				'general_count_today': general_count,
 				'general_count_per_user_today': general_count_per_user,
-				'devise_count_today': device,
-				'devise_count_per_user_today': device_per_user,
+				'device_count_today': device,
+				'device_count_per_user_today': device_per_user,
 				'browser_count_today': browser,
 				'browser_count_per_user_today': browser_per_user,
 				'general_count_last_day': last_day_record.general_count if last_day_record else 'NY',
 				'general_count_per_user_last_day': last_day_record.general_count_per_user if last_day_record else 'NY',
-				'devise_count_last_day': last_day_record.device_count if last_day_record else 'NY',
-				'devise_count_per_user_last_day': last_day_record.device_count if last_day_record else 'NY',
+				'device_count_last_day': last_day_record.device_count if last_day_record else 'NY',
+				'device_count_per_user_last_day': last_day_record.device_count_per_user if last_day_record else 'NY',
 				'browser_count_last_day': last_day_record.browser_count if last_day_record else 'NY',
 				'browser_count_per_user_last_day': last_day_record.browser_count_per_user if last_day_record else 'NY',
 				'general_count_last_week': last_week_record.general_count if last_week_record else 'NY',
 				'general_count_per_user_last_week': last_week_record.general_count_per_user if last_week_record else 'NY',
-				'devise_count_last_week': last_week_record.device_count if last_week_record else 'NY',
-				'devise_count_per_user_last_week': last_week_record.device_count if last_week_record else 'NY',
+				'device_count_last_week': last_week_record.device_count if last_week_record else 'NY',
+				'device_count_per_user_last_week': last_week_record.device_count_per_user if last_week_record else 'NY',
 				'browser_count_last_week': last_week_record.browser_count if last_week_record else 'NY',
 				'browser_count_per_user_last_week': last_week_record.browser_count_per_user if last_week_record else 'NY',
 				'general_count_last_month': last_month_record.general_count if last_month_record else 'NY',
 				'general_count_per_user_last_month': last_month_record.general_count_per_user if last_month_record else 'NY',
-				'devise_count_last_month': last_month_record.device_count if last_month_record else 'NY',
-				'devise_count_per_user_last_month': last_month_record.device_count if last_month_record else 'NY',
+				'device_count_last_month': last_month_record.device_count if last_month_record else 'NY',
+				'device_count_per_user_last_month': last_month_record.device_count_per_user if last_month_record else 'NY',
 				'browser_count_last_month': last_month_record.browser_count if last_month_record else 'NY',
 				'browser_count_per_user_last_month': last_month_record.browser_count_per_user if last_month_record else 'NY'}
 		})
 	template = loader.get_template("analytics/user_url_data.html")
 	return HttpResponse(template.render({'context': response}, request))
+
+
+def userSpecificUrlData(request):
+	cronFillUrlUsageTable()
+	if request.user.is_anonymous:
+		form = AuthenticationForm()
+		return render(request, 'user/login.html', {'form': form, 'title': 'log in'})
+	if request.method == 'POST':
+		try:
+			selected_url_hashmap = request.user.url_hashmaps.get(pk=request.POST['url_hashmap'])
+		except (KeyError, UrlHashmap.DoesNotExist):
+			template = loader.get_template("analytics/get_specific_url_used.html")
+			context = {
+				'error_message': "You didn't select a URL.",
+			}
+			return HttpResponse(template.render(context, request))
+		else:
+			response = {}
+			if 'period' in request.POST and request.POST['period']:
+				period = request.POST['period']
+			else:
+				period = 'today'
+			if period == 'today':
+				start_time = timezone.localtime(timezone.now()).replace(hour=0, minute=0, second=0, microsecond=0)
+				end_time = timezone.localtime(timezone.now())
+				filtered_data = ShortUrlUsage.objects.filter(date_create__gt=start_time, date_create__lt=end_time, shorturl=selected_url_hashmap)
+				try:
+					grouped_data = filtered_data.values('shorturl').annotate(count=Count('id'))[0]
+					shorturl, general_count, general_count_per_user, device, device_per_user, browser, browser_per_user = calculateParameters(grouped_data, filtered_data)
+				except:
+					shorturl = general_count = general_count_per_user = device = device_per_user = browser = browser_per_user = 'NY'
+				response.update({
+					selected_url_hashmap: {
+						'general_count_today': general_count,
+						'general_count_per_user_today': general_count_per_user,
+						'device_count_today': device,
+						'device_count_per_user_today': device_per_user,
+						'browser_count_today': browser,
+						'browser_count_per_user_today': browser_per_user,
+					}
+				})
+			elif period == 'last_day':
+				last_day_record = ShortUrlUsageLastDay.objects.filter(shorturl=selected_url_hashmap).first()
+				response.update({
+					selected_url_hashmap: {
+						'general_count_last_day': last_day_record.general_count if last_day_record else 'NY',
+						'general_count_per_user_last_day': last_day_record.general_count_per_user if last_day_record else 'NY',
+						'device_count_last_day': last_day_record.device_count if last_day_record else 'NY',
+						'device_count_per_user_last_day': last_day_record.device_count_per_user if last_day_record else 'NY',
+						'browser_count_last_day': last_day_record.browser_count if last_day_record else 'NY',
+						'browser_count_per_user_last_day': last_day_record.browser_count_per_user if last_day_record else 'NY',
+					}
+				})
+			elif period == 'last_week':
+				last_week_record = ShortUrlUsageLastWeek.objects.filter(shorturl=selected_url_hashmap).first()
+				response.update({
+					selected_url_hashmap: {
+						'general_count_last_week': last_week_record.general_count if last_week_record else 'NY',
+						'general_count_per_user_last_week': last_week_record.general_count_per_user if last_week_record else 'NY',
+						'device_count_last_week': last_week_record.device_count if last_week_record else 'NY',
+						'device_count_per_user_last_week': last_week_record.device_count_per_user if last_week_record else 'NY',
+						'browser_count_last_week': last_week_record.browser_count if last_week_record else 'NY',
+						'browser_count_per_user_last_week': last_week_record.browser_count_per_user if last_week_record else 'NY',
+					}
+				})
+			elif period == 'last_month':
+				last_month_record = ShortUrlUsageLastMonth.objects.filter(shorturl=selected_url_hashmap).first()
+				response.update({
+					selected_url_hashmap: {
+						'general_count_last_month': last_month_record.general_count if last_month_record else 'NY',
+						'general_count_per_user_last_month': last_month_record.general_count_per_user if last_month_record else 'NY',
+						'device_count_last_month': last_month_record.device_count if last_month_record else 'NY',
+						'device_count_per_user_last_month': last_month_record.device_count_per_user if last_month_record else 'NY',
+						'browser_count_last_month': last_month_record.browser_count if last_month_record else 'NY',
+						'browser_count_per_user_last_month': last_month_record.browser_count_per_user if last_month_record else 'NY',
+					}
+				})
+		template = loader.get_template("analytics/user_url_data.html")
+		return HttpResponse(template.render({'context': response}, request))
+	else:
+		template = loader.get_template("analytics/get_specific_url_used.html")
+		context = {
+		}
+		return HttpResponse(template.render(context, request))

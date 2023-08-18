@@ -2,7 +2,7 @@ from django.template import loader
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from rest_framework.decorators import api_view
-from .models import urlHashmap
+from .models import UrlHashmap
 from analytics.models import ShortUrlUsage
 from django.contrib.auth.forms import AuthenticationForm
 from user_agents import parse
@@ -41,8 +41,8 @@ def makeShortUrl(request):
 			}
 			return HttpResponse(template.render(context, request))
 		try:
-			pre_defined = urlHashmap.objects.get(user=request.user, longurl=data)
-		except urlHashmap.DoesNotExist:
+			pre_defined = UrlHashmap.objects.get(user=request.user, longurl=data)
+		except UrlHashmap.DoesNotExist:
 			pre_defined = None
 		if pre_defined:
 			template = loader.get_template("api/url_generated.html")
@@ -55,14 +55,14 @@ def makeShortUrl(request):
 		if 'short_url_suggest' in request.POST:
 			if request.POST['short_url_suggest']:
 				shorturl = request.POST['short_url_suggest']
-				while urlHashmap.objects.filter(shorturl=shorturl).exists():
+				while UrlHashmap.objects.filter(shorturl=shorturl).exists():
 					shorturl = shorturl + '$'
 		else:
 			while True:
 				shorturl = ''.join(random.sample(s, 6))
-				if not urlHashmap.objects.filter(shorturl=shorturl).exists():
+				if not UrlHashmap.objects.filter(shorturl=shorturl).exists():
 					break
-		urlHashmap.objects.create(
+		UrlHashmap.objects.create(
 			user=request.user,
 			longurl=data,
 			shorturl=shorturl,
@@ -82,7 +82,6 @@ def makeShortUrl(request):
 
 
 def redirection(request, shorturl):
-
 	user_agent = parse(request.META['HTTP_USER_AGENT'])
 	longurl = redis_client.get(shorturl)
 	if longurl is not None:
@@ -95,8 +94,8 @@ def redirection(request, shorturl):
 		return redirect(longurl)
 
 	try:
-		obj = urlHashmap.objects.get(shorturl=shorturl)
-	except urlHashmap.DoesNotExist:
+		obj = UrlHashmap.objects.get(shorturl=shorturl)
+	except UrlHashmap.DoesNotExist:
 		obj = None
 
 	if obj is not None:
