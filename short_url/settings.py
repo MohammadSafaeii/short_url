@@ -126,7 +126,7 @@ from celery.schedules import crontab
 CELERY_BEAT_SCHEDULE = {
 	'run_asyncFillUrlUsageTable_daily': {
 		'task': 'analytics.tasks.run_asyncFillUrlUsageTable',
-		'schedule': crontab(hour='1', minute='2'),
+		'schedule': crontab(hour='0', minute='0'),
 	},
 }
 

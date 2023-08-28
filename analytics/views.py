@@ -129,7 +129,6 @@ def userUrlData(request):
 
 
 def userSpecificUrlData(request):
-	cronFillUrlUsageTable()
 	if request.user.is_anonymous:
 		form = AuthenticationForm()
 		return render(request, 'user/login.html', {'form': form, 'title': 'log in'})

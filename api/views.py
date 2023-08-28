@@ -52,11 +52,10 @@ def makeShortUrl(request):
 			}
 			return HttpResponse(template.render(context, request))
 		s = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!*^$-_"
-		if 'short_url_suggest' in request.POST:
-			if request.POST['short_url_suggest']:
-				shorturl = request.POST['short_url_suggest']
-				while UrlHashmap.objects.filter(shorturl=shorturl).exists():
-					shorturl = shorturl + '$'
+		if 'short_url_suggest' in request.POST and request.POST['short_url_suggest']:
+			shorturl = request.POST['short_url_suggest']
+			while UrlHashmap.objects.filter(shorturl=shorturl).exists():
+				shorturl = shorturl + random.sample(s, 1)[0]
 		else:
 			while True:
 				shorturl = ''.join(random.sample(s, 6))
